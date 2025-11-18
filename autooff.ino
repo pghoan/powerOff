@@ -1,7 +1,8 @@
 #include "AverageOverTime.h"
 #include "EmonLib.h"                   // Include Emon Library
 #define I_MIN  100.0  // ma
-#define TIMEOUT 15 // minutes
+// TIMEOUT tính bằng phút
+const unsigned long TIMEOUT_MS = (unsigned long)15 * 60000UL;
 AverageOverTime avg(10);   // Trung bình trong 10 giây
 EnergyMonitor emon1;                   // Create an instance
 int CT_pin = 5; //  CT sensor pin connected to A5 pin of Arduino
@@ -37,7 +38,7 @@ void loop() {
   if (avg.isFinished()) {
     float ket_qua = avg.getAverage();
     if (ket_qua < I_MIN) {
-      if ((millis() -last_imin)/1000/60 > TIMEOUT) { // can than ham nay tinh sai
+      if (millis() - last_imin >= TIMEOUT_MS) { // can than ham nay tinh sai
         // power off here
       }
     } 
