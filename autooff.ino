@@ -71,15 +71,15 @@ void setup() {
 
   // Nếu cần debug:
   // Serial.begin(9600);
-  // delay(1000);
-  // Serial.println("Booting, going to sleep...");
-
+   
+   Serial.println("Booting, going to sleep...");
+   delay(1000);
   // Ngay khi bật nguồn sẽ ngủ luôn, chờ bấm nút để dậy
-  //goToSleep();
+  goToSleep(); // can dien tro pull up o ben ngoai.
   
 }
 
-void loop () {
+void loop () { // test led & board
   digitalWrite(ledPin, true); // off led 
   delay(300);
   digitalWrite(ledPin, false); // off led 
