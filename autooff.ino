@@ -64,7 +64,7 @@ void goToSleep() {
 void setup() {
   Serial.begin(9600);
   avg.begin();             // Bắt đầu đếm 10 giây
-  emon1.current(CT_pin, 32.59);             // Current: input pin, calibration.
+  //emon1.current(CT_pin, 32.59);             // Current: input pin, calibration.
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, ledState); // off led
@@ -75,11 +75,17 @@ void setup() {
   // Serial.println("Booting, going to sleep...");
 
   // Ngay khi bật nguồn sẽ ngủ luôn, chờ bấm nút để dậy
-  goToSleep();
+  //goToSleep();
   
 }
 
-void loop() {
+void loop () {
+  digitalWrite(ledPin, true); // off led 
+  delay(300);
+  digitalWrite(ledPin, false); // off led 
+  delay(300);
+}
+void loop_bak() {
   static uint32_t last = 0;
   static uint32_t last_imin = 0;
 
