@@ -6,7 +6,7 @@
 const unsigned long TIMEOUT_MS = (unsigned long)15 * 60000UL;
 AverageOverTime avg(10);   // Trung bình trong 10 giây
 EnergyMonitor emon1;                   // Create an instance
-int CT_pin = 5; //  CT sensor pin connected to A5 pin of Arduino
+int CT_pin = A2; //  CT sensor pin connected to A5 pin of Arduino
 
 #include <avr/sleep.h>
 #include <avr/power.h>
@@ -63,9 +63,15 @@ void goToSleep() {
 }
 
 void setup() {
+  //analogReference(INTERNAL); //Đặt lại mức điện áp tối đa  là 1,1 V (nếu sử dụng vi điều khiển ATmega328 hoặc ATmega168)
+  //analogReference(DEFAULT);
   Serial.begin(9600);
   avg.begin();             // Bắt đầu đếm 10 giây
-  emon1.current(CT_pin, 32.59);             // Current: input pin, calibration.
+  //static float x = 0.05; // 3v- 0.15A
+  //static float x = 30.3;
+  // emon1.current(1, 111.1);       // Current: input pin, calibration.  “111.1” is the mains current that gives you 1 V at the ADC input.
+  //emon1.current(CT_pin,x );             // Current: input pin, calibration.
+  emon1.current(CT_pin,0.125);             // Current: input pin, calibration.
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, ledState); // off led
@@ -76,18 +82,50 @@ void setup() {
   // Serial.println("Booting, going to sleep...");
 
   // Ngay khi bật nguồn sẽ ngủ luôn, chờ bấm nút để dậy
-  goToSleep();
+  //goToSleep();
   
+}
+
+void loop_bak () {
+  static uint32_t v_min = 99;
+  static uint32_t v_max = 0;
+  static unsigned long _last = millis();
+  int value = analogRead(CT_pin) ;
+  if (value > v_max) {
+    v_max=value;
+  }
+  if (value < v_min) {
+    v_min=value;
+  }
+  if (millis() - _last >2000) {
+    _last = millis();
+    Serial.println(v_max); v_max = 0;
+    Serial.println(v_min); v_min = 99;
+    Serial.println(value);
+    Serial.println("----------");
+  }
 }
 
 void loop() {
   static uint32_t last = 0;
   static uint32_t last_imin = 0;
-
   double Irms = emon1.calcIrms(1480);  // Calculate Irms only
-  Serial.print(Irms*230.0);         // Apparent power
-  Serial.print(" ");
+  //double Irms = emon1.calcIrms(5588);  // Calculate Irms only
+  //float value = analogRead(CT_pin) * (5.0 / 1023.0);
+  //int value = analogRead(CT_pin) ;
+  //Serial.print(Irms*230.0);         // Apparent power
+  //Serial.print(" ");
   Serial.println(Irms);          // Irms
+  
+  /*if (Irms > 0) {
+    x= x-0.1;
+    Serial.print("X= ");
+    Serial.println(x);
+  }
+  */
+  
+  //Serial.println(value);
+  delay(2000);
 return;
   // doc gia tri cam bien
   if (millis() - last >= 2) {   // Lấy mẫu mỗi 2ms (tùy ý)
