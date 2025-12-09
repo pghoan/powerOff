@@ -1,9 +1,9 @@
 // test do dong
 #include "AverageOverTime.h"
 #include "EmonLib.h"                   // Include Emon Library
-#define I_MIN  100.0  // ma
+#define I_MIN  0.1  // Ampere  // chinh so nay
 // TIMEOUT tính bằng phút
-const unsigned long TIMEOUT_MS = (unsigned long)15 * 60000UL;
+const unsigned long TIMEOUT_MS = (unsigned long)60 * 60000UL; // chinh so nay
 AverageOverTime avg(10);   // Trung bình trong 10 giây
 EnergyMonitor emon1;                   // Create an instance
 int CT_pin = A2; //  CT sensor pin connected to A5 pin of Arduino
@@ -18,7 +18,8 @@ volatile bool wokeByButton = false;
 unsigned long startMillis = 0;
 
 const int ledPin = 13;     // LED
-bool ledState = false;     // trạng thái LED
+const int controlPin = 4;  // chinh so nay
+bool ledState = true;     // trạng thái LED
 
 // ISR gọi khi có ngắt từ nút
 void wakeISR() {
@@ -27,6 +28,7 @@ void wakeISR() {
 
 // Hàm đưa Arduino vào sleep, chỉ dậy khi bấm nút
 void goToSleep() {
+  delay(1000);
   wokeByButton = false;
 
   // Cấu hình ngắt ngoài trên D2 (INT0), cạnh FALLING (từ HIGH xuống LOW)
@@ -67,99 +69,64 @@ void setup() {
   //analogReference(DEFAULT);
   Serial.begin(9600);
   avg.begin();             // Bắt đầu đếm 10 giây
-  //static float x = 0.05; // 3v- 0.15A
-  //static float x = 30.3;
-  // emon1.current(1, 111.1);       // Current: input pin, calibration.  “111.1” is the mains current that gives you 1 V at the ADC input.
-  //emon1.current(CT_pin,x );             // Current: input pin, calibration.
-  emon1.current(CT_pin,0.125);             // Current: input pin, calibration.
+  emon1.current(CT_pin, 0.125);            // Current: input pin, calibration.
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, ledState); // off led
+  pinMode(controlPin, OUTPUT);
+  //digitalWrite(ledPin, ledState); // off led
 
   // Nếu cần debug:
   // Serial.begin(9600);
-  // delay(1000);
-  // Serial.println("Booting, going to sleep...");
-
+  Serial.println("Booting, going to sleep...");
   // Ngay khi bật nguồn sẽ ngủ luôn, chờ bấm nút để dậy
-  //goToSleep();
-  
-}
-
-void loop_bak () {
-  static uint32_t v_min = 99;
-  static uint32_t v_max = 0;
-  static unsigned long _last = millis();
-  int value = analogRead(CT_pin) ;
-  if (value > v_max) {
-    v_max=value;
-  }
-  if (value < v_min) {
-    v_min=value;
-  }
-  if (millis() - _last >2000) {
-    _last = millis();
-    Serial.println(v_max); v_max = 0;
-    Serial.println(v_min); v_min = 99;
-    Serial.println(value);
-    Serial.println("----------");
-  }
+  goToSleep();
+  ledState = true;
+  digitalWrite(ledPin, ledState); // bat ro le
+  digitalWrite(controlPin, ledState); // tat ro le
 }
 
 void loop() {
-  static uint32_t last = 0;
-  static uint32_t last_imin = 0;
-  double Irms = emon1.calcIrms(1480);  // Calculate Irms only
-  //double Irms = emon1.calcIrms(5588);  // Calculate Irms only
-  //float value = analogRead(CT_pin) * (5.0 / 1023.0);
-  //int value = analogRead(CT_pin) ;
-  //Serial.print(Irms*230.0);         // Apparent power
-  //Serial.print(" ");
-  Serial.println(Irms);          // Irms
-  
-  /*if (Irms > 0) {
-    x= x-0.1;
-    Serial.print("X= ");
-    Serial.println(x);
-  }
-  */
-  
-  //Serial.println(value);
-  delay(2000);
-return;
+  static uint32_t last = millis();
+  static uint32_t last_imin = 0; // thoi diem gan nhat co dong < I_MIN
+  //Serial.println(Irms);          // Irms
+  //delay(2000);
   // doc gia tri cam bien
-  if (millis() - last >= 2) {   // Lấy mẫu mỗi 2ms (tùy ý)
+  if (millis() - last >= 500) {   // Lấy mẫu mỗi 2ms (tùy ý)
     last = millis();
-
-    float value = /* giá trị của bạn ở đây, ví dụ: */
-                  analogRead(A0) * (5.0 / 1023.0);
-                  // hoặc đọc từ BME280, DHT, tính toán, v.v.
-
-    avg.addValue(value);
+    float Irms = emon1.calcIrms(1480);  // Calculate Irms only
+    avg.addValue(Irms);
   }
 
   // Khi đủ 10 giây → lấy kết quả và xử lý
   if (avg.isFinished()) {
     float ket_qua = avg.getAverage();
+    Serial.println(ket_qua);          // Irms
     if (ket_qua < I_MIN) {
-      if (last_imin == 0) {
-        last_imin =millis();
-        return;
-      }
-      if (millis() - last_imin >= TIMEOUT_MS) { 
+      if (millis() - last_imin >= TIMEOUT_MS) {
+        ledState = false;
+        digitalWrite(ledPin, ledState); // tat ro le
+        digitalWrite(controlPin, ledState); // tat ro le
         goToSleep();  // sẽ chỉ dậy khi bấm nút lần nữa
+        // ← KHI THỨC DẬY SẼ CHẠY TIẾP DÒNG TIẾP THEO, KHÔNG NHẢY LẠI setup()
+        last_imin = millis();
+        ledState = true;
+        digitalWrite(ledPin, ledState); // bat ro le
+        digitalWrite(controlPin, ledState); // tat ro le
       }
-    } 
-    else {
-     last_imin = 0;
-     if (ledState==false) {
-     ledState = true;
-     digitalWrite(ledPin, ledState); // bat ro le
-     }
+    }
+    else { // co tai
+      last_imin = millis();
     }
     avg.begin();
   }
   // Để tiết kiệm thêm chút, tránh vòng lặp quay quá nhanh
   delay(50);
-  
+
 }
+/*
+   test case:
+   bat dien --> led tắt
+   dong < nguong & > 1 phut  --> led tat
+   dong > nguong --> led sáng
+   Dang sleep, bấm nút --> led sáng
+*/
