@@ -1,4 +1,5 @@
 // test do dong
+// nho mac capacitor de triet nhieu!!
 #include "AverageOverTime.h"
 #include "EmonLib.h"                   // Include Emon Library
 #define I_MIN  0.1  // Ampere  // chinh so nay
@@ -119,7 +120,7 @@ void loop() {
   // UPDATE THE BUTTON
   // YOU MUST CALL THIS EVERY LOOP
   button.update();
-  if (button.pressed()) {
+  if (button.isPressed()) {
     Serial.println("Button pressed...");
     goToSleep();  // sẽ chỉ dậy khi bấm nút lần nữa
     last_imin = millis();
